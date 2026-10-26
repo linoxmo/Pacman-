@@ -1,0 +1,38 @@
+{
+    # File where the top 10 is saved
+    "highscore_filename": "highscores.json",
+
+    # Player
+    "lives": 3,
+    "player_speed": 6,
+
+    # Points
+    "points_per_pacgum": 10,
+    "points_per_super_pacgum": 50,
+    "points_per_ghost": 200,
+
+    # Ghosts (times in seconds, speed in cells per second)
+    "ghost_speed": 5,
+    "edible_time": 7,
+    "ghost_respawn_time": 5,
+
+    # Seed of the first level, the next ones are random
+    "seed": 42,
+
+    # Time limit of each level in seconds
+    "level_max_time": 90,
+
+    # Maze size of each level 1 to 10
+    "levels": [
+        {"width": 15, "height": 11},
+        {"width": 15, "height": 13},
+        {"width": 17, "height": 13},
+        {"width": 17, "height": 15},
+        {"width": 19, "height": 15},
+        {"width": 19, "height": 17},
+        {"width": 21, "height": 17},
+        {"width": 21, "height": 19},
+        {"width": 23, "height": 19},
+        {"width": 25, "height": 21}
+    ]
+}
