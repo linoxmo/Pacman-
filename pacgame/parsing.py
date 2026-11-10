@@ -90,7 +90,7 @@ class Config(SafeModel):
     points_per_super_pacgum: int = Field(default=50, ge=0, le=10000,
                                          strict=True)
     points_per_ghost: int = Field(default=200, ge=0, le=10000, strict=True)
-    ghost_speed: float = Field(default=5.0, ge=1, le=20, strict=True)
+    ghost_speed: float = Field(default=3.0, ge=1, le=20, strict=True)
     edible_time: float = Field(default=7.0, ge=1, le=60, strict=True)
     ghost_respawn_time: float = Field(default=5.0, ge=0, le=60, strict=True)
     seed: int = Field(default=42, ge=0, strict=True)
