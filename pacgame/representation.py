@@ -2,6 +2,7 @@ from typing import Any
 from pacgame.game import Game
 from pacgame.level import Maze, CLOSED, DIRECTIONS
 from pacgame.ghost import Ghost, Blinky, Pinky, Inky, Clyde
+from pacgame.font import draw_letter, draw_text, text_width
 
 
 WIDTH: int = 1500
@@ -21,6 +22,8 @@ GHOST_COLORS: dict[type, int] = {
     Blinky: 0xFF0000, Pinky: 0xFFB8FF, Inky: 0x00FFFF, Clyde: 0xFFB852}
 EYES: int = 0xFFFFFF
 SCARED_GHOST: int = 0x2121DE
+BLINK_TIME: float = 3.0
+TEXT_SIZE: int = 4
 
 
 def fill_rectangle(img: Any, x: int, y: int, w: int, h: int,
@@ -221,6 +224,8 @@ class GameView():
         self.offset_x: int = 0
         self.offset_y: int = HEADER
         self.drawn: dict[int, tuple[int, int, str]] = {}
+        self.header: tuple[str, int] = ("", 0)
+        self.header_x: int = 0
 
     def new_level(self) -> None:
         """Draw a new maze on a new black image.
@@ -242,6 +247,7 @@ class GameView():
                 self.draw_walls(x, y)
                 self.draw_cell(x, y)
         self.drawn = {}
+        self.header = ("", 0)
         self.update_cells()
 
     def draw(self) -> Any:
@@ -253,6 +259,7 @@ class GameView():
             self.new_level()
         else:
             self.update_cells()
+        self.draw_header()
         return self.img
 
     def draw_walls(self, x: int, y: int) -> None:
@@ -320,7 +327,7 @@ class GameView():
         if ghost.state == "eaten":
             return f"eyes-{ghost.direction}"
         if ghost.state == "edible":
-            if ghost.timer < 2 and int(ghost.timer * 4) % 2 == 0:
+            if ghost.timer < BLINK_TIME and int(ghost.timer * 4) % 2 == 0:
                 return "blink"
             return "scared"
         return f"normal-{ghost.direction}"
@@ -372,19 +379,46 @@ class GameView():
             draw_ghost_body(area, GHOST_COLORS[type(ghost)])
             draw_eyes(area, ghost.direction)
 
-    def draw_header(self, win: Any) -> None:
-        """Write the score, lives, level and time above the maze.
-        Args: win is the window.
-        Returns: none."""
+    def header_text(self) -> tuple[str, int]:
+        """Give the text of the header and its color: the score, lives,
+        level and time, or the pause message.
+        Args: none.
+        Returns: the text and its color."""
 
         game: Game = self.game
+        if game.state == "paused":
+            return ("PAUSE - PRESS P TO RESUME", PACMAN)
         level: str = f"{game.level_index + 1}/{len(game.config.levels)}"
         texts: list[str] = [f"SCORE {game.score}",
                             f"LIVES {game.player.lives}",
                             f"LEVEL {level}",
                             f"TIME {max(0, int(game.time_left))}"]
-        for i, text in enumerate(texts):
-            win.string_put(40 + i * 240, 35, 0xFFFFFF, text)
-        if game.state == "paused":
-            win.string_put(WIDTH // 2 - 90, HEADER - 8, 0xFFFF00,
-                           "PAUSE - press P to resume")
+        return ("    ".join(texts), EYES)
+
+    def draw_header(self) -> None:
+        """Write the header in big letters, centered in the window. Only
+        the letters that changed are drawn again (ex: the time).
+        Args: none.
+        Returns: none."""
+
+        text, color = self.header_text()
+        old_text, old_color = self.header
+        if (text, color) == self.header:
+            return
+        x: int = (WIDTH - text_width(text, TEXT_SIZE)) // 2
+        y: int = (HEADER - 7 * TEXT_SIZE) // 2
+        step: int = 6 * TEXT_SIZE
+        if len(text) == len(old_text) and color == old_color:
+            for i, letter in enumerate(text):
+                if letter != old_text[i]:
+                    fill_rectangle(self.img, x + i * step, y,
+                                   5 * TEXT_SIZE, 7 * TEXT_SIZE, GROUND)
+                    draw_letter(self.img, letter, x + i * step, y,
+                                TEXT_SIZE, color)
+        else:
+            fill_rectangle(self.img, self.header_x, y,
+                           text_width(old_text, TEXT_SIZE), 7 * TEXT_SIZE,
+                           GROUND)
+            draw_text(self.img, text, x, y, TEXT_SIZE, color)
+        self.header = (text, color)
+        self.header_x = x

@@ -30,6 +30,6 @@ Start: 2026-10-16
 
 - Highscores and screens : `highscore.py`, `screens.py`
 - Cheat mode : `cheat.py`
-- Look of Pac-Man, 4 ghosts and pacgums : modifying of `representation.py`
+- Look of Pac-Man, 4 ghosts and pacgums : modif of `representation.py`
 - Packaging and itch.io : `pac-man.spec`
 - Final documents and README : `docs/`, `README.md`

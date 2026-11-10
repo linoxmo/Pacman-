@@ -77,7 +77,6 @@ class App():
             self.last = now
             self.game.update(dt)
             self.win.put_image(self.view.draw(), 0, 0)
-            self.view.draw_header(self.win)
             if self.game.state in ("won", "lost"):
                 print(f"Game {self.game.state}, score {self.game.score}")
                 self.mlx.loop_end()

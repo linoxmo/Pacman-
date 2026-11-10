@@ -3,6 +3,10 @@ from pacgame.level import Maze, DIRECTIONS, distance
 from pacgame.player import Player
 
 
+SCATTER_TIME: float = 7.0
+CHASE_TIME: float = 20.0
+
+
 class Ghost(Entity):
     """A ghost that chases Pac-Man or runs away when it is edible.
     Args: none.
@@ -23,6 +27,7 @@ class Ghost(Entity):
         self.respawn_time: float = respawn_time
         self.state: str = "chase"
         self.timer: float = 0.0
+        self.wave: float = 0.0
 
     def reset(self) -> None:
         """Put the ghost back in its corner, chasing.
@@ -32,6 +37,15 @@ class Ghost(Entity):
         super().reset()
         self.state = "chase"
         self.timer = 0.0
+        self.wave = 0.0
+
+    def is_scattering(self) -> bool:
+        """Tell if the ghost goes back to its corner: 7 seconds of scatter,
+        then 20 seconds of chase, and again (like the original game).
+        Args: none.
+        Returns: True during the scatter time."""
+
+        return self.wave < SCATTER_TIME
 
     def make_edible(self) -> None:
         """Make the ghost edible for a while (ie: super-pacgum eaten).
@@ -61,8 +75,9 @@ class Ghost(Entity):
 
     def choose_direction(self) -> str | None:
         """Choose the free direction (except turning back) that brings the
-        ghost the closest to its target through the corridors or the
-        furthest from Pac-Man when it is edible.
+        ghost the closest to its target (or to its corner when it
+        scatters) through the corridors, or the furthest from Pac-Man
+        when it is edible.
         Args: none.
         Returns: the chosen direction."""
 
@@ -75,7 +90,10 @@ class Ghost(Entity):
             far: dict[tuple[int, int], int] = self.maze.bfs(self.player.x,
                                                             self.player.y)
             return max(options, key=lambda d: far.get(self.next_cell(d), 0))
-        target_x, target_y = self.maze.closest_cell(self.get_target())
+        target: tuple[int, int] = self.get_target()
+        if self.is_scattering():
+            target = self.start
+        target_x, target_y = self.maze.closest_cell(target)
         near: dict[tuple[int, int], int] = self.maze.bfs(target_x, target_y)
         return min(options,
                    key=lambda d: near.get(self.next_cell(d), len(near)))
@@ -93,10 +111,12 @@ class Ghost(Entity):
             self.x, self.y = self.next_cell(self.direction)
 
     def update(self, dt: float) -> None:
-        """Count down the edible or waiting time and then move again.
+        """Count the scatter and chase times, count down the edible or
+        waiting time and then move again.
         Args: dt is the time since the last update in seconds.
         Returns: none."""
 
+        self.wave = (self.wave + dt) % (SCATTER_TIME + CHASE_TIME)
         if self.timer > 0:
             self.timer -= dt
             if self.timer <= 0:
