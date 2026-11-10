@@ -15,20 +15,21 @@ Start: 2026-10-16
 - Config parsing : `parsing.py`
 - Level loading : `level.py`
 - Player and ghosts : `entity.py`, `player.py`, `ghost.py`
+- Game rules : `game.py`
+- Display and launcher : `representation.py`, `pac-man.py`
 
 
 ## In progress
 
 
-RAS
+
 
 
 ## To do list
 
 
-- Game rules : `game.py`
-- Display and launcher : `representation.py`, `pac-man.py`
 - Highscores and screens : `highscore.py`, `screens.py`
 - Cheat mode : `cheat.py`
+- Look of Pac-Man, 4 ghosts and pacgums : modifying of `representation.py`
 - Packaging and itch.io : `pac-man.spec`
 - Final documents and README : `docs/`, `README.md`

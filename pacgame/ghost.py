@@ -8,8 +8,6 @@ class Ghost(Entity):
     Args: none.
     Returns: none."""
 
-    color: int = 0xFFFFFF
-
     def __init__(self, maze: Maze, corner: tuple[int, int], speed: float,
                  player: Player, edible_time: float,
                  respawn_time: float) -> None:
@@ -111,8 +109,6 @@ class Blinky(Ghost):
     Args: none.
     Returns: none."""
 
-    color: int = 0xFF0000
-
     def get_target(self) -> tuple[int, int]:
         """Target Pac-Man.
         Args: none.
@@ -125,8 +121,6 @@ class Pinky(Ghost):
     """Pink ghost: targets 4 cells in front of Pac-Man.
     Args: none.
     Returns: none."""
-
-    color: int = 0xFFB8FF
 
     def get_target(self) -> tuple[int, int]:
         """Target 4 cells in front of Pac-Man.
@@ -143,8 +137,6 @@ class Inky(Ghost):
     """Blue ghost: catches Pac-Man between Blinky and himself.
     Args: none.
     Returns: none."""
-
-    color: int = 0x00FFFF
 
     def __init__(self, maze: Maze, corner: tuple[int, int], speed: float,
                  player: Player, edible_time: float, respawn_time: float,
@@ -178,8 +170,6 @@ class Clyde(Ghost):
     close.
     Args: none.
     Returns: none."""
-
-    color: int = 0xFFB852
 
     def get_target(self) -> tuple[int, int]:
         """Target Pac-Man if further than 8 cells and his corner otherwise.
