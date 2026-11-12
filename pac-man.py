@@ -1,5 +1,5 @@
 from pacgame.parsing import create_conf
-from pacgame.screens import App
+from pacgame.new_screens import App
 import sys
 
 
