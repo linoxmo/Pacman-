@@ -71,10 +71,7 @@ def default_levels() -> list[Level]:
     Args: none.
     Returns: the list of levels."""
 
-    sizes: list[tuple[int, int]] = [(15, 11), (15, 13), (17, 13), (17, 15),
-                                    (19, 15), (19, 17), (21, 17), (21, 19),
-                                    (23, 19), (25, 21)]
-    return [Level(width=w, height=h) for w, h in sizes]
+    return [Level(width=21, height=13) for _ in range(10)]
 
 
 class Config(SafeModel):

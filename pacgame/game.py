@@ -18,6 +18,13 @@ class Game():
         self.score: int = 0
         self.level_index: int = 0
         self.state: str = "playing"
+        self.cheat_mode: bool = False
+        self.invincible: bool = False
+        self.frozen: bool = False
+        self.always_edible: bool = False
+        self.speed_factor: float = 1.0
+        self.message: str = ""
+        self.message_time: float = 0.0
         self.maze: Maze
         self.player: Player
         self.ghosts: list[Ghost]
@@ -32,7 +39,8 @@ class Game():
         conf: Config = self.config
         seed: int = conf.seed if self.level_index == 0 else 0
         self.maze = Maze(conf.levels[self.level_index], seed)
-        self.player = Player(self.maze, conf.player_speed, lives)
+        self.player = Player(self.maze,
+                             conf.player_speed * self.speed_factor, lives)
         top_left, top_right, bottom_left, bottom_right = self.maze.corners
         times: tuple[float, float] = (conf.edible_time,
                                       conf.ghost_respawn_time)
@@ -64,6 +72,7 @@ class Game():
 
         if self.state != "playing":
             return
+        self.message_time = max(0.0, self.message_time - dt)
         self.time_left -= dt
         if self.time_left <= 0:
             self.lose_life()
@@ -71,8 +80,12 @@ class Game():
         self.player.update(dt)
         self.eat()
         self.check_ghosts()
-        for ghost in self.ghosts:
-            ghost.update(dt)
+        if self.always_edible:
+            for ghost in self.ghosts:
+                ghost.make_edible()
+        if not self.frozen:
+            for ghost in self.ghosts:
+                ghost.update(dt)
         self.check_ghosts()
         if not self.maze.pacgums and not self.maze.super_pacgums:
             self.next_level()
@@ -104,7 +117,7 @@ class Game():
             if ghost.state == "edible":
                 ghost.get_eaten()
                 self.score += self.config.points_per_ghost
-            elif ghost.state == "chase":
+            elif ghost.state == "chase" and not self.invincible:
                 self.lose_life()
                 return
 
