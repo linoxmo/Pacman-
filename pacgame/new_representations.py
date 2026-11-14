@@ -3,24 +3,23 @@ from pacgame.game import Game
 from pacgame.level import Maze, CLOSED, DIRECTIONS
 from pacgame.ghost import Ghost, Blinky, Pinky, Inky, Clyde
 
-
+FRONT_IMAGE: str = "images/prairie.png"
+CHERRY_IMAGE: str = "images/fruit.png"
+BUGS_IMAGES: str = "images/bugs_{:02d}.png"
+BUGS_COUNT: int = 5
+WALK_ORDER: list[int] = [1, 3, 4, 3, 2, 1, 0]
 WIDTH: int = 1500
 HEIGHT: int = 1000
 HEADER: int = 60
 GROUND: str = "#000000"
 WALL: str = "#2121DE"
 PATTERN: str = "#101050"
-PACGUMS: str = "#FFB8AE"
 PACMAN: str = "#FFFF00"
+PACGUMS: str = "#FFB8AE"
 RED: str = "#FF0000"
 EYES: str = "#FFFFFF"
 SCARED_GHOST: str = "#2121DE"
 BLINK_TIME: float = 3.0
-MOUTHS: dict[str, list[tuple[float, float]]] = {
-    "E": [(0.5, 0.5), (1.0, 0.15), (1.0, 0.85)],
-    "W": [(0.5, 0.5), (0.0, 0.15), (0.0, 0.85)],
-    "N": [(0.5, 0.5), (0.15, 0.0), (0.85, 0.0)],
-    "S": [(0.5, 0.5), (0.15, 1.0), (0.85, 1.0)]}
 GHOST_COLORS: dict[type, str] = {
     Blinky: "#FF0000", Pinky: "#FFB8FF", Inky: "#00FFFF", Clyde: "#FFB852"}
 
@@ -70,16 +69,6 @@ class CellArea():
                            max(self.px(w), 1), max(self.px(h), 1))
         pygame.draw.rect(self.surface, color, rect)
 
-    def triangle(self, points: list[tuple[float, float]],
-                 color: str) -> None:
-        """Fill a triangle in the cell.
-        Args: points the 3 corners, color.
-        Returns: none."""
-
-        corners = [(self.x + self.px(x), self.y + self.px(y))
-                   for x, y in points]
-        pygame.draw.polygon(self.surface, color, corners)
-
 
 def draw_pacgum(area: CellArea) -> None:
     """Small pacgum.
@@ -87,25 +76,6 @@ def draw_pacgum(area: CellArea) -> None:
     Returns: none."""
 
     area.ellipse(0.5, 0.5, 0.08, 0.08, PACGUMS)
-
-
-def draw_super_pacgum(area: CellArea) -> None:
-    """Big pacgum.
-    Args: area is the drawing area of the cell.
-    Returns: none."""
-    
-    pacman.blit()
-    area.ellipse(0.5, 0.5, 0.25, 0.25, PACGUMS)
-
-
-def draw_pacman(area: CellArea, direction: str, mouth_open: bool) -> None:
-    """Yellow circle with its mouth open in its direction.
-    Args: area, direction where Pac-Man looks, mouth_open to draw the mouth.
-    Returns: none."""
-
-    area.ellipse(0.5, 0.5, 0.45, 0.45, PACMAN)
-    if mouth_open:
-        area.triangle(MOUTHS[direction], GROUND)
 
 
 def draw_ghost_body(area: CellArea, color: str) -> None:
@@ -148,7 +118,8 @@ def draw_scared(area: CellArea, color: str) -> None:
 
 
 class GameView():
-    """Draw a game on a pygame surface: walls, pacgums, Pac-Man, ghosts.
+    """Draw a game on a pygame surface: walls, pacgums, cherries
+    (super-pacgums), Bugs Bunny (the player) and the ghosts.
     Args: none.
     Returns: none."""
 
@@ -160,13 +131,24 @@ class GameView():
         self.game: Game = game
         self.font: pygame.font.Font = pygame.font.Font(None, 48)
         self.maze: Maze | None = None
+        self.prairie_source: pygame.Surface = pygame.image.load(
+            FRONT_IMAGE).convert()
         self.background: pygame.Surface | None = None
         self.tile: int = 0
         self.offset_x: int = 0
         self.offset_y: int = HEADER
+        self.cherry_source: pygame.Surface = pygame.image.load(
+            CHERRY_IMAGE).convert_alpha()
+        self.cherry_image: pygame.Surface = self.cherry_source
+        self.bugs_source: list[pygame.Surface] = [
+            pygame.image.load(BUGS_IMAGES.format(i)).convert_alpha()
+            for i in range(BUGS_COUNT)]
+        self.bugs_right: list[pygame.Surface] = self.bugs_source
+        self.bugs_left: list[pygame.Surface] = self.bugs_source
 
     def new_level(self) -> None:
-        """Compute the layout and draw the walls once on a background.
+        """Compute the layout, draw the walls once on a background and
+        resize the cherry and Bugs Bunny images to the size of a cell.
         Args: none.
         Returns: none."""
 
@@ -177,11 +159,35 @@ class GameView():
         self.offset_x = (WIDTH - self.tile * maze.width) // 2
         self.offset_y = HEADER + (HEIGHT - HEADER
                                   - self.tile * maze.height) // 2
-        self.background = pygame.Surface((WIDTH, HEIGHT))
-        self.background.fill(GROUND)
+        self.background = pygame.transform.smoothscale(
+        self.prairie_source, (WIDTH, HEIGHT))
         for y in range(maze.height):
             for x in range(maze.width):
                 self.draw_walls(x, y)
+        size: int = max(int(self.tile * 0.8), 1)
+        self.cherry_image = pygame.transform.smoothscale(
+            self.cherry_source, (size, size))
+        self.resize_bugs()
+        shade: pygame.Surface = pygame.Surface((WIDTH, HEIGHT))
+        shade.set_alpha(120)          # 0 = transparent, 255 = noir complet
+        self.background.blit(shade, (0, 0))
+
+    def resize_bugs(self) -> None:
+        """Resize the Bugs Bunny frames to fit a cell (same ratio for all
+        frames, pixel art kept sharp) and make the mirrored frames used
+        to walk to the west.
+        Args: none.
+        Returns: none."""
+
+        height: int = max(int(self.tile * 0.9), 1)
+        ratio: float = height / max(s.get_height() for s in self.bugs_source)
+        self.bugs_right = [
+            pygame.transform.scale(
+                s, (max(int(s.get_width() * ratio), 1),
+                    max(int(s.get_height() * ratio), 1)))
+            for s in self.bugs_source]
+        self.bugs_left = [pygame.transform.flip(s, True, False)
+                          for s in self.bugs_right]
 
     def draw_walls(self, x: int, y: int) -> None:
         """Draw the walls around a cell on the background.
@@ -212,14 +218,37 @@ class GameView():
         return CellArea(surface, self.offset_x + x * self.tile + 2,
                         self.offset_y + y * self.tile + 2, self.tile - 4)
 
-    def pacman_look(self) -> tuple[str, bool]:
-        """Give Pac-Man's direction and whether its mouth is open
-        (open on one cell out of two).
-        Args: none.
-        Returns: the direction and the mouth state."""
+    def draw_bugs(self, surface: pygame.Surface) -> None:
+        """Draw Bugs Bunny in the cell of the player. The frame changes at
+        each cell (0,1,2,3,4,3,2,1,0) so he seems to walk, and the image
+        is mirrored when he goes west.
+        Args: surface to draw on.
+        Returns: none."""
 
         player = self.game.player
-        return (player.direction or "E", (player.x + player.y) % 2 == 0)
+        index: int = WALK_ORDER[(player.x + player.y) % len(WALK_ORDER)]
+        frames: list[pygame.Surface] = (
+            self.bugs_right if player.direction == "W" else self.bugs_left)
+        image: pygame.Surface = frames[index]
+        w, h = image.get_size()
+        px: int = self.offset_x + player.x * self.tile + (self.tile - w) // 2
+        py: int = self.offset_y + player.y * self.tile + (self.tile - h) // 2
+        surface.blit(image, (px, py))
+
+    def draw_pacgums(self, surface: pygame.Surface) -> None:
+        """Draw the small pacgums as circles and the super-pacgums as
+        cherries (image centered in their cell).
+        Args: surface to draw on.
+        Returns: none."""
+
+        maze: Maze = self.game.maze
+        for x, y in maze.pacgums:
+            draw_pacgum(self.cell_area(surface, x, y))
+        w, h = self.cherry_image.get_size()
+        for x, y in maze.super_pacgums:
+            px: int = self.offset_x + x * self.tile + (self.tile - w) // 2
+            py: int = self.offset_y + y * self.tile + (self.tile - h) // 2
+            surface.blit(self.cherry_image, (px, py))
 
     def draw_ghost(self, surface: pygame.Surface, ghost: Ghost) -> None:
         """Draw a ghost according to its state.
@@ -264,15 +293,8 @@ class GameView():
         if self.game.maze is not self.maze:
             self.new_level()
         surface.blit(self.background, (0, 0))
-        maze: Maze = self.game.maze
-        for x, y in maze.pacgums:
-            draw_pacgum(self.cell_area(surface, x, y))
-        for x, y in maze.super_pacgums:
-            draw_super_pacgum(self.cell_area(surface, x, y))
-        player = self.game.player
-        direction, mouth = self.pacman_look()
-        draw_pacman(self.cell_area(surface, player.x, player.y),
-                    direction, mouth)
+        self.draw_pacgums(surface)
+        self.draw_bugs(surface)
         for ghost in self.game.ghosts:
             self.draw_ghost(surface, ghost)
         self.draw_header(surface)
