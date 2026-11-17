@@ -27,14 +27,11 @@ HEADER: int = 60
 GROUND: str = "#000000"
 WALL: str = "#00FF9F"
 PATTERN: str = "#101050"
-PACMAN: str = "#FFFF00"
 PACGUMS: str = "#E37719ED"
 RED: str = "#FF0000"
 EYES: str = "#FFFFFF"
 SCARED_GHOST: str = "#2121DE"
 BLINK_TIME: float = 3.0
-GHOST_COLORS: dict[type, str] = {
-    Blinky: "#FF0000", Pinky: "#FFB8FF", Inky: "#00FFFF", Clyde: "#FFB852"}
 
 
 class CellArea():
@@ -393,7 +390,7 @@ class GameView():
 
         game: Game = self.game
         if game.state == "paused":
-            text, color = "PAUSE - PRESS P TO RESUME", PACMAN
+            text, color = "PAUSE - PRESS P TO RESUME", BUGS_IMAGES
         else:
             level: str = f"{game.level_index + 1}/{len(game.config.levels)}"
             text = "    ".join([f"SCORE {game.score}",
