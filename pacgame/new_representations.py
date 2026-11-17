@@ -7,8 +7,20 @@ from pacgame.player import Player
 FRONT_IMAGE: str = "images/prairie.png"
 CARROT_IMAGE: str = "images/carrotes.png"
 BUGS_IMAGES: str = "images/bugs_{:02d}.png"
+ELMER_IMAGES: str = "images/elmer/elmer_{:02d}.png"
+MARVIN_IMAGES: str = "images/marvin/marvin_{:02d}.png"
+COYOTE_IMAGES: str = "images/coyote/coyote_{0:03d}.png"
+TAZ_IMAGES: str = "images/taz/taz_{0:02d}.png"
 BUGS_COUNT: int = 5
+ELMER_COUNT: int = 6
+COYOTE_COUNT: int = 6
+TAZ_COUNT: int = 3
+MARVIN_COUNT: int = 4
 WALK_ORDER: list[int] = [1, 3, 4, 3, 2, 1, 0]
+WALK_ORDER_ELMER: list[int] = [2, 3, 4, 5, 1, 2, 3]
+WALK_ORDER_TAZ: list[int] = [3, 4, 5, 4, 3, 4, 5]
+WALK_ORDER_MARWIN: list[int] = [1, 0, 2, 0, 1, 0, 2]
+WALK_ORDER_COYOTE: list[int] = [18, 19, 20, 21, 22, 17, 18]
 WIDTH: int = 1500
 HEIGHT: int = 1000
 HEADER: int = 60
@@ -118,6 +130,100 @@ def draw_scared(area: CellArea, color: str) -> None:
                        face)
 
 
+class SpriteSet():
+    """The walking frames of one character, resized for the maze.
+    Args: none.
+    Returns: none."""
+
+    def __init__(self, path: str, walk_order: list[int],
+                 looks_to: str) -> None:
+        """Load the frames used by the walk.
+        Args: path is the file name model (ex: "images/taz/taz_{:02d}.png"),
+        walk_order the frames in the order of the animation, looks_to
+        the side the original sprites look at ("E" or "W").
+        Returns: none."""
+
+        self.walk_order: list[int] = walk_order
+        self.looks_to: str = looks_to
+        self.source: dict[int, pygame.Surface] = {
+            i: pygame.image.load(path.format(i)).convert_alpha()
+            for i in set(walk_order)}
+        self.east: dict[int, pygame.Surface] = self.source
+        self.west: dict[int, pygame.Surface] = self.source
+
+    def resize(self, tile: int) -> None:
+        """Fit the frames in a cell (same ratio for all frames, pixel art
+        kept sharp) and make the mirrored frames.
+        Args: tile is the size of a cell in pixels.
+        Returns: none."""
+
+        limit: int = max(int(tile * 0.9), 1)
+        height: int = max(s.get_height() for s in self.source.values())
+        width: int = max(s.get_width() for s in self.source.values())
+        ratio: float = min(limit / height, limit / width)
+        scaled: dict[int, pygame.Surface] = {
+            i: pygame.transform.scale(
+                s, (max(int(s.get_width() * ratio), 1),
+                    max(int(s.get_height() * ratio), 1)))
+            for i, s in self.source.items()}
+        flipped: dict[int, pygame.Surface] = {
+            i: pygame.transform.flip(s, True, False)
+            for i, s in scaled.items()}
+        if self.looks_to == "E":
+            self.east, self.west = scaled, flipped
+        else:
+            self.east, self.west = flipped, scaled
+
+    def image(self, side: str, step: int) -> pygame.Surface:
+        """Give the frame to draw.
+        Args: side is "E" or "W", step the number of the animation step.
+        Returns: the image."""
+
+        frames: dict[int, pygame.Surface] = (
+            self.west if side == "W" else self.east)
+        return frames[self.walk_order[step % len(self.walk_order)]]
+
+
+class GhostSprites():
+    """Give the right image for each ghost (one character per ghost).
+    Args: none.
+    Returns: none."""
+
+    FRAME_TIME: int = 120      
+
+    def __init__(self) -> None:
+        """Load the characters.
+        Args: none.
+        Returns: none."""
+
+        self.sets: dict[type, SpriteSet] = {
+            Blinky: SpriteSet(ELMER_IMAGES, WALK_ORDER_ELMER, "E"),
+            Pinky: SpriteSet(TAZ_IMAGES, WALK_ORDER_TAZ, "E"),
+            Inky: SpriteSet(MARVIN_IMAGES, WALK_ORDER_MARWIN, "W"),
+            Clyde: SpriteSet(COYOTE_IMAGES, WALK_ORDER_COYOTE, "E")}
+        self.side: dict[Ghost, str] = {}
+
+    def resize(self, tile: int) -> None:
+        """Resize all the characters.
+        Args: tile is the size of a cell in pixels.
+        Returns: none."""
+
+        for sprite_set in self.sets.values():
+            sprite_set.resize(tile)
+
+    def image(self, ghost: Ghost) -> pygame.Surface:
+        """Give the image of a ghost. It looks to the last side (east or
+        west) where it went, so it does not turn back when it goes up
+        or down.
+        Args: ghost is the ghost.
+        Returns: the image."""
+
+        if ghost.direction in ("E", "W"):
+            self.side[ghost] = ghost.direction
+        step: int = pygame.time.get_ticks() // self.FRAME_TIME
+        return self.sets[type(ghost)].image(self.side.get(ghost, "E"), step)
+
+
 class GameView():
     """Draw a game on a pygame surface: walls, pacgums, cherries
     (super-pacgums), Bugs Bunny (the player) and the ghosts.
@@ -147,6 +253,7 @@ class GameView():
             for i in range(BUGS_COUNT)]
         self.bugs_right: list[pygame.Surface] = self.bugs_source
         self.bugs_left: list[pygame.Surface] = self.bugs_source
+        self.ghost_sprites: GhostSprites = GhostSprites()
 
     def new_level(self) -> None:
         """Compute the layout, draw the walls once on a background and
@@ -170,9 +277,11 @@ class GameView():
         self.cherry_image = pygame.transform.smoothscale(
             self.carrot_source, (size, size))
         self.resize_bugs()
+        self.ghost_sprites.resize(self.tile)
         shade: pygame.Surface = pygame.Surface((WIDTH, HEIGHT))
         shade.set_alpha(120)          # 0 = transparent, 255 = noir complet
         self.background.blit(shade, (0, 0))
+        
 
     def resize_bugs(self) -> None:
         """Resize the Bugs Bunny frames to fit a cell (same ratio for all
@@ -270,8 +379,11 @@ class GameView():
                            and int(ghost.timer * 4) % 2 == 0)
             draw_scared(area, EYES if blink else SCARED_GHOST)
         else:
-            draw_ghost_body(area, GHOST_COLORS[type(ghost)])
-            draw_eyes(area, ghost.direction)
+            image: pygame.Surface = self.ghost_sprites.image(ghost)
+            w, h = image.get_size()
+            px: int = self.offset_x + ghost.x * self.tile + (self.tile - w) // 2
+            py: int = self.offset_y + ghost.y * self.tile + (self.tile - h) // 2
+            surface.blit(image, (px, py))
 
     def draw_header(self, surface: pygame.Surface) -> None:
         """Write the score, lives, level and time (or the pause message),

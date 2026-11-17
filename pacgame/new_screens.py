@@ -57,6 +57,7 @@ class App():
             return
         self.view = GameView(self.game)
         clock = pygame.time.Clock()
+        pygame.display.set_caption(f"Pac-Man {clock.get_fps():.0f} FPS")
         running: bool = True
         while running:
             dt: float = min(clock.tick(FPS) / 1000, 0.1)
