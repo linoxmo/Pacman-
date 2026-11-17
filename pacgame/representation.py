@@ -2,6 +2,7 @@ from typing import Any
 from pacgame.game import Game
 from pacgame.level import Maze, CLOSED, DIRECTIONS
 from pacgame.ghost import Ghost, Blinky, Pinky, Inky, Clyde
+from pacgame.player import Player
 from pacgame.font import draw_letter, draw_text, text_width
 from pacgame.cheat import cheat_text
 import math
@@ -316,7 +317,7 @@ class GameView():
         Returns: Pac-Man's look (ex: "E-open" for if it's looking E with
         its mouth opened)."""
 
-        player = self.game.player
+        player: Player = self.game.player
         direction: str = player.direction or "E"
         mouth: str = "open" if (player.x + player.y) % 2 == 0 else "closed"
         return f"{direction}-{mouth}"
@@ -340,7 +341,7 @@ class GameView():
         Args: none.
         Returns: none."""
 
-        player = self.game.player
+        player: Player = self.game.player
         now: dict[int, tuple[int, int, str]] = {
             0: (player.x, player.y, self.pacman_look())}
         for i, ghost in enumerate(self.game.ghosts, start=1):

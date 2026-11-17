@@ -41,7 +41,7 @@ class SafeModel(BaseModel):
         try:
             return handler(value)
         except ValidationError as e:
-            error = e.errors()[0]
+            error: Any = e.errors()[0]
             limits: dict[str, Any] = error.get("ctx", {})
             if error["type"] == "greater_than_equal":
                 print(f"Warning: '{name}' = {value!r} is too small, "
