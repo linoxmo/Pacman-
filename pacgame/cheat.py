@@ -1,11 +1,12 @@
 from pacgame.game import Game
+import pygame
 
 
-KEY_CHEAT: int = 99
+KEY_CHEAT: int = pygame.K_c
 CHEATS: dict[int, str] = {
-    65470: "INVINCIBLE", 65471: "NEXT LEVEL", 65472: "FREEZE",
-    65473: "EXTRA LIFE", 65474: "SPEED", 65475: "BLUE GHOSTS",
-    65476: "TIME 10S"}
+    pygame.K_F1: "INVINCIBLE", pygame.K_F2: "NEXT LEVEL", pygame.K_F3: "FREEZE",
+    pygame.K_F4: "EXTRA LIFE", pygame.K_F5: "SPEED", pygame.K_F6: "BLUE GHOSTS",
+    pygame.K_F7: "TIME 10S"}
 FAST: float = 2.0
 SHORT_TIME: float = 10.0
 MESSAGE_TIME: float = 3.0
@@ -47,8 +48,6 @@ def use_cheat(game: Game, keycode: int) -> None:
     Args: game is the current game, keycode is the key.
     Returns: none."""
 
-    if not game.cheat_mode or keycode not in CHEATS:
-        return
     cheat: str = CHEATS[keycode]
     if cheat == "INVINCIBLE":
         game.invincible = not game.invincible

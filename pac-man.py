@@ -1,5 +1,5 @@
 from pacgame.parsing import create_conf, Config
-from pacgame.screens import Application
+from pacgame.new_screens import App
 import sys
 
 
@@ -13,7 +13,7 @@ def main() -> None:
             print("Error: input should be 'python3 pac-man.py config.json'")
             return
         config: Config = create_conf(sys.argv[1])
-        Application(config).run()
+        App(config).run()
     except KeyboardInterrupt:
         print("\nGame stopped")
     except Exception as e:

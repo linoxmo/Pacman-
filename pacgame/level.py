@@ -1,6 +1,7 @@
 from mazegenerator import MazeGenerator
 from pacgame.parsing import Level
 from collections import deque as dq
+import random
 
 
 DIRECTIONS: dict[str, tuple[int, int, int]] = {
@@ -60,8 +61,9 @@ class Maze():
         self.super_pacgums: set[tuple[int, int]] = {
             c for c in self.corners if c in reachable}
         self.pacgums: set[tuple[int, int]] = \
-            reachable - self.super_pacgums - {self.player_start}
-
+            set(random.sample(sorted(reachable - self.super_pacgums - {self.player_start}), 2 * (self.width + self.height))) 
+        #list a la place de sorted si on veut du random
+        
     def can_move(self, x: int, y: int, direction: str) -> bool:
         """Check if there is no wall in a direction from a cell.
         Args: x and y are the cell, direction is N, E, S or W.

@@ -24,7 +24,7 @@
 
     # Maze size of each level 1 to 10
     "levels": [
-        {"width": 21, "height": 13},
+        {"width": 21, "height": 15},
         {"width": 21, "height": 13},
         {"width": 21, "height": 13},
         {"width": 21, "height": 13},
