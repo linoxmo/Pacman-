@@ -26,8 +26,8 @@ def generate_grid(level: Level, seed: int) -> list[list[int]]:
     Returns: the grid of the walls of each cell."""
 
     try:
-        generator = MazeGenerator(size=(level.width, level.height),
-                                  perfect=False, seed=seed)
+        generator: MazeGenerator = MazeGenerator(
+            size=(level.width, level.height), perfect=False, seed=seed)
         grid: list[list[int]] = generator.maze
     except Exception as e:
         raise LevelError(f"the maze generator failed ({e})") from e
@@ -101,14 +101,14 @@ class Maze():
         Returns: the distance of each reachable cell."""
 
         queue: dq[tuple[int, int]] = dq()
-        visited = {(start_x, start_y): 0}
+        visited: dict[tuple[int, int], int] = {(start_x, start_y): 0}
 
         queue.append((start_x, start_y))
         while queue:
             x, y = queue.popleft()
             for direction, (dx, dy, _) in DIRECTIONS.items():
-                nx = x + dx
-                ny = y + dy
+                nx: int = x + dx
+                ny: int = y + dy
                 if (nx, ny) not in visited and \
                         self.can_move(x, y, direction):
                     visited[(nx, ny)] = visited[(x, y)] + 1
