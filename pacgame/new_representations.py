@@ -2,9 +2,10 @@ import pygame
 from pacgame.game import Game
 from pacgame.level import Maze, CLOSED, DIRECTIONS
 from pacgame.ghost import Ghost, Blinky, Pinky, Inky, Clyde
+from pacgame.player import Player
 
 FRONT_IMAGE: str = "images/prairie.png"
-CHERRY_IMAGE: str = "images/fruit.png"
+CARROT_IMAGE: str = "images/carrotes.png"
 BUGS_IMAGES: str = "images/bugs_{:02d}.png"
 BUGS_COUNT: int = 5
 WALK_ORDER: list[int] = [1, 3, 4, 3, 2, 1, 0]
@@ -12,10 +13,10 @@ WIDTH: int = 1500
 HEIGHT: int = 1000
 HEADER: int = 60
 GROUND: str = "#000000"
-WALL: str = "#2121DE"
+WALL: str = "#00FF9F"
 PATTERN: str = "#101050"
 PACMAN: str = "#FFFF00"
-PACGUMS: str = "#FFB8AE"
+PACGUMS: str = "#E37719ED"
 RED: str = "#FF0000"
 EYES: str = "#FFFFFF"
 SCARED_GHOST: str = "#2121DE"
@@ -129,6 +130,7 @@ class GameView():
         Returns: none."""
 
         self.game: Game = game
+        self.comptbugs: int = 0
         self.font: pygame.font.Font = pygame.font.Font(None, 48)
         self.maze: Maze | None = None
         self.prairie_source: pygame.Surface = pygame.image.load(
@@ -137,9 +139,9 @@ class GameView():
         self.tile: int = 0
         self.offset_x: int = 0
         self.offset_y: int = HEADER
-        self.cherry_source: pygame.Surface = pygame.image.load(
-            CHERRY_IMAGE).convert_alpha()
-        self.cherry_image: pygame.Surface = self.cherry_source
+        self.carrot_source: pygame.Surface = pygame.image.load(
+            CARROT_IMAGE).convert_alpha()
+        self.carrot_image: pygame.Surface = self.carrot_source
         self.bugs_source: list[pygame.Surface] = [
             pygame.image.load(BUGS_IMAGES.format(i)).convert_alpha()
             for i in range(BUGS_COUNT)]
@@ -166,7 +168,7 @@ class GameView():
                 self.draw_walls(x, y)
         size: int = max(int(self.tile * 0.8), 1)
         self.cherry_image = pygame.transform.smoothscale(
-            self.cherry_source, (size, size))
+            self.carrot_source, (size, size))
         self.resize_bugs()
         shade: pygame.Surface = pygame.Surface((WIDTH, HEIGHT))
         shade.set_alpha(120)          # 0 = transparent, 255 = noir complet
@@ -225,8 +227,13 @@ class GameView():
         Args: surface to draw on.
         Returns: none."""
 
-        player = self.game.player
-        index: int = WALK_ORDER[(player.x + player.y) % len(WALK_ORDER)]
+        player: Player = self.game.player
+    
+        if self.comptbugs <= 60:
+            self.comptbugs += 1
+        else:
+            self.comptbugs = 0
+        index: int = WALK_ORDER[round(self.comptbugs / 12)]
         frames: list[pygame.Surface] = (
             self.bugs_right if player.direction == "W" else self.bugs_left)
         image: pygame.Surface = frames[index]
