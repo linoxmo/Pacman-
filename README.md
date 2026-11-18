@@ -142,6 +142,7 @@ a pacgum in every other reachable cell.
   (`images/background.png`) is the prairie already resized to the window
   and darkened, so it is only loaded; the cells of the `42` show the same
   prairie without darkening (`images/background_bright.png`).
+  - The game is findable on itch.io at https://limoxmo654654.itch.io/pac-man42
 
 
 # GENERAL SOFTWARE ARCHITECTURE
@@ -165,7 +166,6 @@ pacgame/
 `Application` owns the window, the `Highscores` and, during a game, a
 `Game` and its `GameView`. `Game` creates a `Maze`, a `Player` and 4
 ghosts for each level. `GameView` only reads the `Game` to draw it.
-
 
 # PROJECT MANAGEMENT
 

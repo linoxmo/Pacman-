@@ -8,9 +8,10 @@ from pacgame.ghost import Ghost, Blinky, Pinky, Inky, Clyde
 from pacgame.player import Player
 from pacgame.font import Color, draw_letter, draw_text, text_width
 from pacgame.cheat import cheat_text
+from pacgame.load_ressources import Resources
 
 
-IMAGES: Path = Path(__file__).resolve().parent.parent / "images"
+IMAGES: Path = Resources.root() / "images"
 BACKGROUND_IMAGE: str = "background.png"
 START_IMAGE = "start.png"
 BRIGHT_IMAGE: str = "background_bright.png"
@@ -132,6 +133,8 @@ def scale_sprite(source: pygame.Surface, width: int, height: int) -> Sprite:
             if c.a >= 128:
                 pixels.append((x, y, (c.r, c.g, c.b)))
     return Sprite(width, height, pixels)
+
+
 
 
 def mirror_sprite(sprite: Sprite) -> Sprite:
@@ -327,8 +330,7 @@ class Images():
 
         self.prairie: pygame.Surface = load_image(BACKGROUND_IMAGE)
         self.start: pygame.Surface = load_image(START_IMAGE)
-        self.start: pygame.Surface = pygame.transform.smoothscale(
-    self.start, (WIDTH, HEIGHT))
+        self.start = pygame.transform.smoothscale(self.start, (WIDTH, HEIGHT))
         self.bright: pygame.Surface = load_image(BRIGHT_IMAGE)
         for name, image in ((BACKGROUND_IMAGE, self.prairie),
                             (BRIGHT_IMAGE, self.bright)):
