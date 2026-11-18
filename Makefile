@@ -45,6 +45,7 @@ lint-strict: install
 
 package: install
 	$(VENV)/bin/pyinstaller --noconfirm $(SPEC)
+	cp config.json README.md dist/
 
 clean:
 	find . -path ./$(VENV) -prune -o -type d -name "__pycache__" \

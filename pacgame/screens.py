@@ -1,45 +1,43 @@
-from pymlx import Mlx
-from typing import Any
+import time
+import pygame
 from pacgame.parsing import Config
 from pacgame.game import Game
 from pacgame.level import LevelError
 from pacgame.highscore import Highscores, MAX_NAME
-from pacgame.representation import GameView, WIDTH, HEIGHT
-from pacgame.font import draw_text, text_width
+from pacgame.representation import GameView, Images, WIDTH, HEIGHT
+from pacgame.font import Color, draw_text, text_width
 from pacgame.cheat import KEY_CHEAT, CHEATS, toggle_cheat_mode, use_cheat
-import time
 
 
-KEY_ESC: int = 65307
-KEY_SPACE: int = 32
-KEY_ENTER: tuple[int, int] = (65293, 65421)
-KEY_BACKSPACE: int = 65288
-KEY_QUIT: tuple[int, int] = (113, 65307)
-KEY_UP: tuple[int, int] = (119, 65362)
-KEY_DOWN: tuple[int, int] = (115, 65364)
+KEY_ENTER: tuple[int, int] = (pygame.K_RETURN, pygame.K_KP_ENTER)
+KEY_PAUSE: tuple[int, int] = (pygame.K_SPACE, pygame.K_p)
+KEY_UP: tuple[int, int, int] = (pygame.K_UP, pygame.K_w, pygame.K_z)
+KEY_DOWN: tuple[int, int] = (pygame.K_DOWN, pygame.K_s)
 KEYS: dict[int, str] = {
-    65362: "N", 65364: "S", 65361: "W", 65363: "E",
-    119: "N", 115: "S", 97: "W", 100: "E"}
+    pygame.K_UP: "N", pygame.K_DOWN: "S",
+    pygame.K_LEFT: "W", pygame.K_RIGHT: "E",
+    pygame.K_w: "N", pygame.K_z: "N", pygame.K_s: "S",
+    pygame.K_a: "W", pygame.K_q: "W", pygame.K_d: "E"}
 FRAME_TIME: float = 1 / 60
-TEXT: int = 0xFFFFFF
-SELECTED: int = 0xFFFF00
-LOST: int = 0xFF0000
-WON: int = 0x00FF00
-CHEAT: int = 0xFF0000
+TEXT: Color = (255, 255, 255)
+SELECTED: Color = (255, 255, 0)
+LOST: Color = (255, 0, 0)
+WON: Color = (0, 255, 0)
+CHEAT: Color = (255, 0, 0)
 MAIN_MENU: list[str] = ["START GAME", "HIGHSCORES", "INSTRUCTIONS", "EXIT"]
 PAUSE_MENU: list[str] = ["RESUME", "MAIN MENU"]
 
 
-def write_centered(img: Any, text: str, y: int, size: int,
-                   color: int) -> None:
+def write_centered(surface: pygame.Surface, text: str, y: int, size: int,
+                   color: Color) -> None:
     """Write a text centered in the window.
-    Args: img is the image to draw on, text is the text to be written,
+    Args: surface is the image to draw on, text is the text to be written,
     y is the top of the text, size is the size of one letter pixel,
     color is the color of the text.
     Returns: none."""
 
     x: int = (WIDTH - text_width(text, size)) // 2
-    draw_text(img, text, x, y, size, color)
+    draw_text(surface, text, x, y, size, color)
 
 
 class Application():
@@ -55,9 +53,10 @@ class Application():
 
         self.config: Config = config
         self.highscores: Highscores = Highscores(config.highscore_filename)
-        self.mlx: Any = None
-        self.win: Any = None
-        self.img: Any = None
+        self.window: pygame.Surface = pygame.Surface((WIDTH, HEIGHT))
+        self.img: pygame.Surface = pygame.Surface((WIDTH, HEIGHT))
+        self.images: Images | None = None
+        self.running: bool = True
         self.screen: str = "menu"
         self.choice: int = 0
         self.redraw: bool = True
@@ -70,22 +69,30 @@ class Application():
         self.last_image_time: float = 0.0
 
     def run(self) -> None:
-        """Open the window and play until the player quits.
+        """Open the window, load the images and play until the player
+        quits.
         Args: none.
         Returns: none."""
 
-        with Mlx() as mlx:
-            self.mlx = mlx
-            self.win = mlx.new_window(WIDTH, HEIGHT, "Pac-Man")
+        pygame.init()
+        try:
+            self.window = pygame.display.set_mode((WIDTH, HEIGHT))
+            pygame.display.set_caption("Pac-Man")
+            write_centered(self.window, "LOADING...", 450, 8, SELECTED)
+            pygame.display.flip()
+            self.images = Images()
             self.last_image_time = time.monotonic()
-            self.win.on_key(self.on_key)
-            self.win.on_close(mlx.loop_end)
-            mlx.on_loop(self.on_frame)
-            mlx.loop()
-            self.stop_game()
-            if self.img is not None:
-                mlx.destroy_image(self.img)
-            self.win.destroy()
+            while self.running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                    elif event.type == pygame.KEYDOWN:
+                        self.on_key(event.key, event.unicode)
+                self.on_frame()
+        except (pygame.error, OSError) as e:
+            print(f"Error: cannot open the window or load the images ({e})")
+        finally:
+            pygame.quit()
 
     def show_screen(self, screen: str) -> None:
         """Go to another screen.
@@ -102,6 +109,8 @@ class Application():
         Args: none.
         Returns: none."""
 
+        if self.images is None:
+            return
         try:
             self.game = Game(self.config)
         except LevelError as e:
@@ -109,16 +118,14 @@ class Application():
             self.show_screen("menu")
             return
         self.message = ""
-        self.view = GameView(self.mlx, self.game)
+        self.view = GameView(self.game, self.images)
         self.show_screen("game")
 
     def stop_game(self) -> None:
-        """Forget the current game and free its image.
+        """Forget the current game.
         Args: none.
         Returns: none."""
 
-        if self.view is not None:
-            self.view.close()
         self.view = None
         self.game = None
 
@@ -133,57 +140,57 @@ class Application():
         self.stop_game()
         self.show_screen("name")
 
-    def on_key(self, keycode: int) -> None:
+    def on_key(self, key: int, char: str) -> None:
         """React to a key, depending on the current screen.
-        Args: keycode is the key.
+        Args: key is the pygame key code, char the typed character.
         Returns: none."""
 
         if self.screen == "name":
-            self.name_key(keycode)
-        elif keycode in KEY_QUIT and self.screen == "menu":
-            self.mlx.loop_end()
-        elif keycode in KEY_QUIT:
+            self.name_key(key, char)
+        elif key == pygame.K_ESCAPE and self.screen == "menu":
+            self.running = False
+        elif key == pygame.K_ESCAPE:
             self.stop_game()
             self.show_screen("menu")
         elif self.screen == "game":
-            self.game_key(keycode)
+            self.game_key(key)
         elif self.screen in ("menu", "pause"):
-            self.menu_key(keycode)
+            self.menu_key(key)
 
-    def game_key(self, keycode: int) -> None:
-        """During the game: move Pac-Man, open the pause menu or use the
+    def game_key(self, key: int) -> None:
+        """During the game: move Bugs Bunny, open the pause menu or use the
         cheat mode.
-        Args: keycode is the key.
+        Args: key is the pygame key code.
         Returns: none."""
 
         if self.game is None:
             return
-        if keycode == KEY_SPACE:
+        if key in KEY_PAUSE:
             self.game.toggle_pause()
             self.show_screen("pause")
-        elif keycode in KEYS:
-            self.game.player.turn(KEYS[keycode])
-        elif keycode == KEY_CHEAT:
+        elif key in KEYS:
+            self.game.player.turn(KEYS[key])
+        elif key == KEY_CHEAT:
             toggle_cheat_mode(self.game)
-        elif keycode in CHEATS:
-            use_cheat(self.game, keycode)
+        elif key in CHEATS:
+            use_cheat(self.game, key)
 
-    def menu_key(self, keycode: int) -> None:
+    def menu_key(self, key: int) -> None:
         """In a menu: move the selection up or down or validate it.
-        Args: keycode is the key.
+        Args: key is the pygame key code.
         Returns: none."""
 
         options: list[str] = MAIN_MENU if self.screen == "menu" \
             else PAUSE_MENU
-        if keycode in KEY_UP:
+        if key in KEY_UP:
             self.choice = (self.choice - 1) % len(options)
             self.redraw = True
-        elif keycode in KEY_DOWN:
+        elif key in KEY_DOWN:
             self.choice = (self.choice + 1) % len(options)
             self.redraw = True
-        elif keycode in KEY_ENTER:
+        elif key in KEY_ENTER:
             self.select(options[self.choice])
-        elif keycode == KEY_SPACE and self.screen == "pause":
+        elif key in KEY_PAUSE and self.screen == "pause":
             self.select("RESUME")
 
     def select(self, option: str) -> None:
@@ -196,7 +203,7 @@ class Application():
         elif option in ("HIGHSCORES", "INSTRUCTIONS"):
             self.show_screen(option.lower())
         elif option == "EXIT":
-            self.mlx.loop_end()
+            self.running = False
         elif option == "RESUME" and self.game is not None:
             self.game.toggle_pause()
             self.show_screen("game")
@@ -204,23 +211,23 @@ class Application():
             self.stop_game()
             self.show_screen("menu")
 
-    def name_key(self, keycode: int) -> None:
+    def name_key(self, key: int, char: str) -> None:
         """Type the name of the player, then save the score with Enter.
-        Args: keycode is the key.
+        Args: key is the pygame key code, char the typed character.
         Returns: none."""
 
-        if keycode in KEY_ENTER:
+        if key in KEY_ENTER:
             self.highscores.add(self.name, self.score)
             self.show_screen("menu")
-        elif keycode == KEY_ESC:
+        elif key == pygame.K_ESCAPE:
             self.show_screen("menu")
-        elif keycode == KEY_BACKSPACE:
+        elif key == pygame.K_BACKSPACE:
             self.name = self.name[:-1]
             self.redraw = True
-        elif keycode < 128 and len(self.name) < MAX_NAME:
-            letter: str = chr(keycode)
-            if letter.isalnum() or letter == " ":
-                self.name += letter.upper()
+        elif len(char) == 1 and ord(char) < 128 \
+                and len(self.name) < MAX_NAME:
+            if char.isalnum() or char == " ":
+                self.name += char.upper()
                 self.redraw = True
 
     def on_frame(self) -> None:
@@ -235,17 +242,18 @@ class Application():
             if self.screen == "game" and self.game is not None \
                     and self.view is not None:
                 self.game.update(dt)
-                self.win.put_image(self.view.draw(), 0, 0)
+                self.view.draw(self.window)
                 if self.game.state in ("won", "lost"):
                     self.end_game(self.game)
             else:
                 if self.redraw:
                     self.draw_screen()
-                self.win.put_image(self.img, 0, 0)
+                self.window.blit(self.img, (0, 0))
         except LevelError as e:
             self.stop_game()
             self.message = f"ERROR: {e}"
             self.show_screen("menu")
+        pygame.display.flip()
         spent: float = time.monotonic() - now
         if spent < FRAME_TIME:
             time.sleep(FRAME_TIME - spent)
@@ -255,16 +263,14 @@ class Application():
         Args: none.
         Returns: none."""
 
-        if self.img is not None:
-            self.mlx.destroy_image(self.img)
-        self.img = self.mlx.new_image(WIDTH, HEIGHT)
+        self.img = pygame.Surface((WIDTH, HEIGHT))
         if self.screen == "menu":
             write_centered(self.img, "PAC-MAN", 150, 14, SELECTED)
-            self.draw_options(MAIN_MENU)
+            self.draw_options(MAIN_MENU, "ESC: QUIT")
             write_centered(self.img, self.message[:60], 830, 3, LOST)
         elif self.screen == "pause":
             write_centered(self.img, "PAUSE", 150, 12, SELECTED)
-            self.draw_options(PAUSE_MENU)
+            self.draw_options(PAUSE_MENU, "ESC: MAIN MENU")
         elif self.screen == "highscores":
             self.draw_highscores()
         elif self.screen == "instructions":
@@ -273,16 +279,17 @@ class Application():
             self.draw_name()
         self.redraw = False
 
-    def draw_options(self, options: list[str]) -> None:
+    def draw_options(self, options: list[str], escape: str) -> None:
         """Write the options of a menu, the selected one appears yellow.
-        Args: options are the options / categories of the menu.
+        Args: options are the options of the menu, escape tells what the
+        escape key does.
         Returns: none."""
 
         for i, option in enumerate(options):
-            color: int = SELECTED if i == self.choice else TEXT
+            color: Color = SELECTED if i == self.choice else TEXT
             write_centered(self.img, option, 420 + i * 90, 6, color)
         write_centered(self.img, "ARROWS: CHOOSE    ENTER: VALIDATE    "
-                       "Q OR ESC: QUIT", 920, 3, TEXT)
+                       + escape, 920, 3, TEXT)
 
     def draw_highscores(self) -> None:
         """Write the top 10 (at max) with the names and the scores.
@@ -295,7 +302,7 @@ class Application():
         for i, (name, score) in enumerate(self.highscores.scores):
             line: str = f"{i + 1:>2}. {name:<10} {score:>7}"
             write_centered(self.img, line, 230 + i * 62, 5, TEXT)
-        write_centered(self.img, "Q OR ESC: BACK TO MENU", 920, 3, TEXT)
+        write_centered(self.img, "ESC: BACK TO MENU", 920, 3, TEXT)
 
     def draw_instructions(self) -> None:
         """Write the controls and the rules of the game.
@@ -304,28 +311,28 @@ class Application():
 
         conf: Config = self.config
         lines: list[str] = [
-            "ARROWS OR WASD: MOVE PAC-MAN",
-            "SPACE: PAUSE    Q OR ESC: MENU, AGAIN: QUIT",
+            "ARROWS, WASD OR ZQSD: MOVE BUGS BUNNY",
+            "SPACE OR P: PAUSE    ESC: MENU, AGAIN: QUIT",
             "",
             "EAT ALL THE PACGUMS TO FINISH A LEVEL",
-            "BIG PACGUMS MAKE THE GHOSTS BLUE",
-            "EAT THE BLUE GHOSTS FOR BONUS POINTS",
-            "A GHOST OR THE END OF THE TIME: -1 LIFE",
+            "CARROTS MAKE THE ENEMIES EDIBLE",
+            "EAT THE EDIBLE ENEMIES FOR BONUS POINTS",
+            "AN ENEMY OR THE END OF THE TIME: -1 LIFE",
             f"FINISH THE {len(conf.levels)} LEVELS TO WIN",
             "",
             f"PACGUM {conf.points_per_pacgum}    "
-            f"BIG PACGUM {conf.points_per_super_pacgum}    "
-            f"GHOST {conf.points_per_ghost}"]
+            f"CARROT {conf.points_per_super_pacgum}    "
+            f"ENEMY {conf.points_per_ghost}"]
         cheats: list[str] = [
             "CHEAT MODE: PRESS C IN GAME, THEN",
-            "F1 INVINCIBLE    F2 NEXT LEVEL    F3 FREEZE GHOSTS",
-            "F4 EXTRA LIFE    F5 SPEED    F6 BLUE GHOSTS    F7 TIME 10S"]
+            "F1 INVINCIBLE    F2 NEXT LEVEL    F3 FREEZE ENEMIES",
+            "F4 EXTRA LIFE    F5 SPEED    F6 GREEN ENEMIES    F7 TIME 10S"]
         write_centered(self.img, "INSTRUCTIONS", 60, 9, SELECTED)
         for i, line in enumerate(lines):
             write_centered(self.img, line, 190 + i * 52, 4, TEXT)
         for i, line in enumerate(cheats):
             write_centered(self.img, line, 770 + i * 36, 3, CHEAT)
-        write_centered(self.img, "Q OR ESC: BACK TO MENU", 940, 3, TEXT)
+        write_centered(self.img, "ESC: BACK TO MENU", 940, 3, TEXT)
 
     def draw_name(self) -> None:
         """Write the end of the game: the result, the final score and the

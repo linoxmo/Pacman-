@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name="pacman"
 version="1.0.0"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
   {name = "Theo MAGOUDI", email = "theo.magoudi@learner.42.tech"},
   {name = "Laura-May GERARD", email = "laura-may.gerard@learner.42.tech"},
@@ -12,4 +12,4 @@ authors = [
 description = "Pacman Project for 42: Recode the Pacman project"
 readme = "README.md"
 license = "MIT"
-dependencies = ["pygame>=2.2.1"]
+dependencies = ["pydantic", "pygame>=2.2.1"]

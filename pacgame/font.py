@@ -1,5 +1,7 @@
-from typing import Any
+import pygame
 
+
+Color = tuple[int, int, int]
 
 # Each letter is 5 pixels wide and 7 pixels high: "#" is a lit pixel
 LETTERS: dict[str, list[str]] = {
@@ -60,12 +62,12 @@ def text_width(text: str, size: int) -> int:
     return (len(text) * 6 - 1) * size
 
 
-def draw_letter(img: Any, letter: str, x: int, y: int, size: int,
-                color: int) -> None:
+def draw_letter(surface: pygame.Surface, letter: str, x: int, y: int,
+                size: int, color: Color) -> None:
     """Draw one letter: each "#" becomes a square of size x size pixels.
-    Args: img is the image to draw on, letter is the letter, x and y are
-    the top left corner, size is the size of one letter pixel, color is
-    the color of the letter.
+    Args: surface is the image to draw on, letter is the letter, x and y
+    are the top left corner, size is the size of one letter pixel, color
+    is the color of the letter.
     Returns: none."""
 
     rows: list[str] = LETTERS.get(letter.upper(), SPACE)
@@ -74,16 +76,16 @@ def draw_letter(img: Any, letter: str, x: int, y: int, size: int,
             if pixel == "#":
                 for py in range(y + row * size, y + (row + 1) * size):
                     for px in range(x + col * size, x + (col + 1) * size):
-                        img.pixel_put(px, py, color)
+                        surface.set_at((px, py), color)
 
 
-def draw_text(img: Any, text: str, x: int, y: int, size: int,
-              color: int) -> None:
+def draw_text(surface: pygame.Surface, text: str, x: int, y: int,
+              size: int, color: Color) -> None:
     """Draw a text letter by letter.
-    Args: img is the image to draw on, text is the text, x and y are the
-    top left corner, size is the size of one letter pixel, color is the
-    color of the text.
+    Args: surface is the image to draw on, text is the text, x and y are
+    the top left corner, size is the size of one letter pixel, color is
+    the color of the text.
     Returns: none."""
 
     for i, letter in enumerate(text):
-        draw_letter(img, letter, x + i * 6 * size, y, size, color)
+        draw_letter(surface, letter, x + i * 6 * size, y, size, color)

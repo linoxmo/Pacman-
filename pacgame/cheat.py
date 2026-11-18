@@ -4,9 +4,9 @@ import pygame
 
 KEY_CHEAT: int = pygame.K_c
 CHEATS: dict[int, str] = {
-    pygame.K_F1: "INVINCIBLE", pygame.K_F2: "NEXT LEVEL", pygame.K_F3: "FREEZE",
-    pygame.K_F4: "EXTRA LIFE", pygame.K_F5: "SPEED", pygame.K_F6: "BLUE GHOSTS",
-    pygame.K_F7: "TIME 10S"}
+    pygame.K_F1: "INVINCIBLE", pygame.K_F2: "NEXT LEVEL",
+    pygame.K_F3: "FREEZE", pygame.K_F4: "EXTRA LIFE", pygame.K_F5: "SPEED",
+    pygame.K_F6: "GREEN GHOSTS", pygame.K_F7: "TIME 10S"}
 FAST: float = 2.0
 SHORT_TIME: float = 10.0
 MESSAGE_TIME: float = 3.0
@@ -35,7 +35,7 @@ def toggle_cheat_mode(game: Game) -> None:
 
 
 def set_speed(game: Game, factor: float) -> None:
-    """Change the speed of Pac-Man (it is kept for the next levels).
+    """Change the speed of the player (it is kept for the next levels).
     Args: game is the current game, factor multiplies the normal speed.
     Returns: none."""
 
@@ -48,6 +48,8 @@ def use_cheat(game: Game, keycode: int) -> None:
     Args: game is the current game, keycode is the key.
     Returns: none."""
 
+    if not game.cheat_mode or keycode not in CHEATS:
+        return
     cheat: str = CHEATS[keycode]
     if cheat == "INVINCIBLE":
         game.invincible = not game.invincible
@@ -61,7 +63,7 @@ def use_cheat(game: Game, keycode: int) -> None:
         show_message(game, "+1 LIFE")
     elif cheat == "SPEED":
         set_speed(game, 1.0 if game.speed_factor > 1.0 else FAST)
-    elif cheat == "BLUE GHOSTS":
+    elif cheat == "GREEN GHOSTS":
         game.always_edible = not game.always_edible
     elif cheat == "TIME 10S":
         game.time_left = min(game.time_left, SHORT_TIME)
@@ -83,7 +85,7 @@ def cheat_text(game: Game) -> str:
     if game.speed_factor > 1.0:
         names.append("SPEED")
     if game.always_edible:
-        names.append("BLUE GHOSTS")
+        names.append("GREEN GHOSTS")
     if game.message_time > 0:
         names.append(game.message)
     if not names:
