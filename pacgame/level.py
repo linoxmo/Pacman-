@@ -1,6 +1,7 @@
 from mazegenerator import MazeGenerator
 from pacgame.parsing import Level
 from collections import deque as dq
+import random
 
 
 DIRECTIONS: dict[str, tuple[int, int, int]] = {
@@ -57,8 +58,8 @@ class Maze():
         start_x, start_y = self.player_start
         reachable: set[tuple[int, int]] = set(self.bfs(start_x, start_y))
         self.cells: list[tuple[int, int]] = sorted(reachable)
-        self.super_pacgums: set[tuple[int, int]] = {
-            c for c in self.corners if c in reachable}
+        self.super_pacgums: set[tuple[int, int]] = random(list({
+            c for c in self.corners if c in reachable}),20)
         self.pacgums: set[tuple[int, int]] = \
             reachable - self.super_pacgums - {self.player_start}
 

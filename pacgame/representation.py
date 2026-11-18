@@ -12,6 +12,7 @@ from pacgame.cheat import cheat_text
 
 IMAGES: Path = Path(__file__).resolve().parent.parent / "images"
 BACKGROUND_IMAGE: str = "background.png"
+START_IMAGE = "start.png"
 BRIGHT_IMAGE: str = "background_bright.png"
 CARROT_IMAGE: str = "carrotes.png"
 BUGS_IMAGES: str = "bugs_{:02d}.png"
@@ -325,6 +326,9 @@ class Images():
         Returns: none."""
 
         self.prairie: pygame.Surface = load_image(BACKGROUND_IMAGE)
+        self.start: pygame.Surface = load_image(START_IMAGE)
+        self.start: pygame.Surface = pygame.transform.smoothscale(
+    self.start, (WIDTH, HEIGHT))
         self.bright: pygame.Surface = load_image(BRIGHT_IMAGE)
         for name, image in ((BACKGROUND_IMAGE, self.prairie),
                             (BRIGHT_IMAGE, self.bright)):

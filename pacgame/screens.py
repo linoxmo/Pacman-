@@ -265,6 +265,8 @@ class Application():
 
         self.img = pygame.Surface((WIDTH, HEIGHT))
         if self.screen == "menu":
+            if self.images is not None:
+                self.img.blit(self.images.start, (0, 0))
             write_centered(self.img, "PAC-MAN", 150, 14, SELECTED)
             self.draw_options(MAIN_MENU, "ESC: QUIT")
             write_centered(self.img, self.message[:60], 830, 3, LOST)

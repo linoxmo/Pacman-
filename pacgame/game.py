@@ -66,7 +66,7 @@ class Game():
             self.state = "playing"
 
     def update(self, dt: float) -> None:
-        """Play dt (= delta time since last image) seconds of the game.
+        """Play dt (= delta time since last image) seconds of thee}", 360, 6, TEXT) game.
         Args: dt is the time since the last image update in seconds.
         Returns: none."""
 
