@@ -58,10 +58,10 @@ class Maze():
         start_x, start_y = self.player_start
         reachable: set[tuple[int, int]] = set(self.bfs(start_x, start_y))
         self.cells: list[tuple[int, int]] = sorted(reachable)
-        self.super_pacgums: set[tuple[int, int]] = random(list({
-            c for c in self.corners if c in reachable}),20)
+        self.super_pacgums: set[tuple[int, int]] = {
+            c for c in self.corners if c in reachable}
         self.pacgums: set[tuple[int, int]] = \
-            reachable - self.super_pacgums - {self.player_start}
+            set(random.sample(sorted(reachable - self.super_pacgums - {self.player_start}), 2 * (self.width + self.height))) 
 
     def can_move(self, x: int, y: int, direction: str) -> bool:
         """Check if there is no wall in a direction from a cell.
